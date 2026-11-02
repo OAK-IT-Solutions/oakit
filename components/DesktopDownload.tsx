@@ -16,7 +16,7 @@ export default function DesktopDownload() {
         <Reveal>
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href="https://github.com/kengeorge2/oakit/releases"
+              href="https://github.com/OAK-IT-Solutions/classicpos-Lite/releases"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-500"
@@ -25,7 +25,7 @@ export default function DesktopDownload() {
               Download for Windows
             </a>
             <a
-              href="https://github.com/kengeorge2/oakit/releases"
+              href="https://github.com/OAK-IT-Solutions/classicpos-Lite/releases"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-blue-600 px-6 py-3 font-medium text-blue-600 transition hover:bg-blue-600/10 dark:text-blue-400 dark:border-blue-400"
