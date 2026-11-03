@@ -244,23 +244,17 @@ CORS_ALLOWED_ORIGINS=https://posapp.oakitsolutionsandsupplies.com,https://pos.oa
 
 ---
 
-## How to Restart Services
+## How to Restart Services (Dokploy / Linux Workspace)
 
 ```bash
-# Restart everything
-cd D:\kilo\poslavalel
-docker compose up -d --force-recreate
+# Restart the client dashboard container
+docker restart compose-compress-primary-panel-52okxe-client-dashboard-1
 
-# Restart just the client dashboard
-docker compose up -d --force-recreate client-dashboard
+# Restart the Laravel API container
+docker restart compose-compress-primary-panel-52okxe-app-1
 
-# Restart just the Laravel app
-docker compose up -d --force-recreate app
-
-# Clear Laravel caches
-docker exec classicpos-app php artisan route:clear
-docker exec classicpos-app php artisan config:clear
-docker exec classicpos-app php artisan cache:clear
+# Clear & rebuild Laravel caches
+docker exec compose-compress-primary-panel-52okxe-app-1 sh -c 'cd /var/www/html && php artisan route:clear && php artisan config:clear && php artisan cache:clear && php artisan config:cache && php artisan route:cache'
 ```
 
 ---
@@ -405,5 +399,38 @@ docker exec classicpos-app php artisan cache:clear
 - [ ] Logout → clears token, redirects to `/auth/login`
 
 ### Sidebar Navigation
-- [ ] Current page highlighted in sidebar
-- [ ] All 6 nav items work: Dashboard, My Plan, Services, Tickets, Billing, Profile
+- [x] Current page highlighted in sidebar
+- [x] All 6 nav items work: Dashboard, My Plan, Services, Tickets, Billing, Profile
+
+---
+
+## Sprint 4: Frontend Onboarding Funnel, Checkout, Currency & E2E Tests (August 2026) ✅ Complete
+
+- **F-1 Auth Handoff (`?token=&redirect=`)**: `AuthProvider` (`client-dashboard/src/features/auth/auth-provider.tsx`) intercepts `?token=` from URL on mount, persists to `localStorage`, strips token from URL bar via `window.history.replaceState`, fetches user profile, and redirects. Added `/auth/verify` page (`client-dashboard/src/app/auth/verify/page.tsx`).
+- **F-2 Subscription Checkout Page (`/dashboard/checkout`)**: Built dedicated checkout flow (`client-dashboard/src/app/dashboard/checkout/page.tsx`) with plan selection, monthly/annual billing cycle toggle, currency selector, and PayPal/PesaPal order creation.
+- **F-3 Multi-Currency & `formatMoney`**: Created `client-dashboard/src/lib/format.ts` with `formatMoney`, `getStoredCurrency`, and `setStoredCurrency` (`localStorage`), wired across Dashboard, Subscriptions, Billing, and Checkout pages.
+- **F-4 First-Login Onboarding Wizard**: Created `client-dashboard/src/components/onboarding/wizard.tsx` shown when `onboarding_completed === false` (collects company info, preferred currency, plan confirmation, or skip, calling `POST /api/v1/client/auth/onboarding-complete`).
+- **F-5 & F-6 Marketing Site Enhancements**: Fixed `#pricing` anchor, wired Hero & Pricing CTAs to registration, and added `components/DesktopDownload.tsx` section.
+- **F-7 Global 401/419 Interceptor & XSRF**: Updated `client-dashboard/src/lib/api.ts` and `auth-provider.tsx` to attach `X-XSRF-TOKEN` headers and automatically redirect to `/auth/login?reason=...` on 401/419 responses.
+- **F-8 Playwright E2E Test Suite**: Added `client-dashboard/playwright.config.ts`, `tests/auth.spec.ts`, and `tests/currency.spec.ts` (6/6 tests passing).
+
+---
+
+## Sprint 5: Platform Super-Admin Dashboard (August 2026) ✅ Complete
+
+- Scaffolded 16-page Next.js 16 + React 19 + Tailwind CSS 4 admin SPA connecting to `/api/v1/admin/*` (`dashboard`, `tenants`, `tenants/new`, `tenants/[id]`, `plans`, `subscriptions`, `revenue`, `commissions`, `agents`, `agents/[id]`, `client-users`, `tickets`, `desktop-licenses`, `audit-logs`, `settings`, `health`).
+- Extracted `admin-dashboard/` out of `oakit/` into top-level `/home/apps/codebases/kilo/kilo/admin-dashboard/` (commit `3e18927`) so `oakit` root Vercel builds remain isolated and fast.
+
+---
+
+## Sprint 9 & 10: Plan Pre-Population, 3-Day Trial & Desktop Release Links (August–October 2026) ✅ Complete
+
+- **Plan Pre-Population Flow (`?plan=`)**:
+  - Updated marketing pricing CTAs (`lib/pricing.ts`, `components/ServicesPricing.tsx`) to point to `/auth/register?plan={slug}` with 3-day free trial messaging.
+  - Rewrote `client-dashboard/src/app/auth/register/page.tsx` to match backend validation rules, auto-select the plan from `?plan=`, and render a live plan features & pricing card below the selector.
+  - Updated `client-dashboard/src/components/onboarding/wizard.tsx` and `/dashboard/checkout` to pre-select the user's active/trialing subscription plan.
+  - Added dark-mode CSS variables in `client-dashboard/src/styles/globals.css`.
+- **Security & Desktop Download Fixes**:
+  - Removed `verification_url` leak from `app/api/auth/send-verification/route.ts` response payload.
+  - Updated `components/DesktopDownload.tsx` to point directly to `https://github.com/OAK-IT-Solutions/classicpos-Lite/releases`.
+

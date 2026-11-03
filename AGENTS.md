@@ -1,15 +1,18 @@
-# AGENTS.md — OAK IT Solutions Marketing Website
+# AGENTS.md — OAK IT Solutions Marketing Website & Customer Portal
 
-## Project
+## Project Overview
 
-Marketing site for OAK IT Solutions (Kampala, Uganda). Next.js 14 App Router, TypeScript, Tailwind CSS 3, shadcn/ui (default style, slate theme).
+Repository containing two Next.js 14 App Router applications for OAK IT Solutions (Kampala, Uganda):
+1. **Marketing Website (`/` root)**: Deployed on **Vercel** at `https://oakitsolutionsandsupplies.com`. Next.js 14 App Router, TypeScript, Tailwind CSS 3, shadcn/ui (slate theme), Ghost CMS blog integration, Resend email.
+2. **Customer Portal (`client-dashboard/`)**: Deployed in **Docker (`:3004`)** at `https://dashboard.oakitsolutionsandsupplies.com` (Dokploy container `compose-compress-primary-panel-52okxe-client-dashboard-1`). Connects to the ClassicPOS Laravel 12 API (`https://posapp.oakitsolutionsandsupplies.com/api/v1/client/*`).
 
-**Live:** https://oakitsolutionsandsupplies.com · **Blog:** blog.oakitsolutionsandsupplies.com · **Dashboard:** dashboard.oakitsolutionsandsupplies.com · **API:** posapp.oakitsolutionsandsupplies.com
+*(Note: Platform Super-Admin SPA was extracted to `/home/apps/codebases/kilo/kilo/admin-dashboard/` so it does not interfere with the root Vercel build.)*
 
 ---
 
 ## Commands
 
+### Root Marketing Site (`oakit/`)
 ```bash
 npm run dev        # dev server (localhost:3000)
 npm run build      # production build
@@ -17,25 +20,31 @@ npm run lint       # ESLint
 bun install        # install (bun.lock present; npm also works)
 ```
 
-No test framework is configured. No CI pipeline in this repo.
+### Client Dashboard (`oakit/client-dashboard/`)
+```bash
+cd client-dashboard
+npm run dev                # dev server
+npm run build              # production build
+npx playwright test        # run E2E tests (tests/auth.spec.ts, tests/currency.spec.ts — 6/6 passing)
+```
 
 ---
 
 ## Architecture
 
-- `app/` — Next.js App Router pages. All pages are **server components** unless they need client interactivity.
-- `components/` — Reusable UI. shadcn/ui components live in `components/ui/`.
-- `lib/` — Server-side logic only (Ghost CMS client, Resend email, pricing/config, services).
-- `scripts/` — One-off CLI scripts (blog content push). Run with Node, not browser.
-- `client-dashboard/` — **Separate Next.js app** (auth subscriptions/tickets). Excluded from this tsconfig; developed independently.
+- `app/` — Root Marketing Site Next.js App Router pages. Server components by default unless client interactivity is needed.
+- `components/` — Reusable marketing UI (`ServicesPricing.tsx`, `ServicesList.tsx`, `DesktopDownload.tsx`, `ContactUs.tsx`, `ui/*`).
+- `lib/` — Server-side logic & config (`ghost.ts`, `email.ts`, `pricing.ts`, `services.ts`).
+- `scripts/` — CLI scripts (`push-blog-content.js` for Ghost Admin API).
+- `client-dashboard/` — Separate Next.js 14 customer portal app (excluded from root `tsconfig.json`; has its own `package.json`, `Dockerfile`, and Playwright suite).
 
 ---
 
-## Routes
+## Marketing Site Routes (`app/`)
 
 | Route | File | Notes |
 |---|---|---|
-| `/` | `app/page.tsx` | Hero → Pricing → Services → Testimonials → Blog → Mission → FAQ → Bootcamp → Contact |
+| `/` | `app/page.tsx` | Hero → Pricing (3-day trial CTAs) → Services → Testimonials → Blog → Mission → FAQ → Bootcamp → Desktop Download → Contact |
 | `/products` | `app/products/page.tsx` | ClassicPOS, QuizApp, Blog |
 | `/about-us` | `app/about-us/page.tsx` | Company info |
 | `/blog` | `app/blog/page.tsx` | Ghost CMS listing |
@@ -44,86 +53,63 @@ No test framework is configured. No CI pipeline in this repo.
 | `/frontend-stack` | `app/frontend-stack/page.tsx` | Bootcamp curriculum |
 | `/fullstack-learn-more` | `app/fullstack-learn-more/page.tsx` | Fullstack bootcamp |
 | `/services/[slug]` | `app/services/[slug]/page.tsx` | Dynamic service detail (13 services) |
+| `/auth/signup`, `/auth/signin`, `/auth/verify` | `app/auth/*/page.tsx` | Marketing auth pages & email verification proxy (`/api/auth/*`) |
 
-Legacy URLs (`/aboutUs`, `/Backendstack`, etc.) 301-redirect to the canonical kebab-case routes in `next.config.mjs`.
+Legacy URLs (`/aboutUs`, `/Backendstack`, etc.) 301-redirect to canonical kebab-case routes in `next.config.mjs`.
 
 ---
 
-## Key Files
+## Client Dashboard Routes & Features (`client-dashboard/src/`)
+
+| Route | File | Purpose |
+|---|---|---|
+| `/auth/login` | `src/app/auth/login/page.tsx` | Client login + forgot-password link + `?reason=` session expiry banner |
+| `/auth/register` | `src/app/auth/register/page.tsx` | Registration with `?plan=` auto-select, live plan feature preview card, and 3-day free trial messaging |
+| `/auth/verify` | `src/app/auth/verify/page.tsx` | Email verification token handler + auto-redirect |
+| `/auth/forgot-password` | `src/app/auth/forgot-password/page.tsx` | Request password reset link |
+| `/auth/reset-password` | `src/app/auth/reset-password/page.tsx` | Set new password (`<Suspense>` wrapped) |
+| `/dashboard` | `src/app/dashboard/page.tsx` | Overview: current subscription, 3-day trial badge, stats, recent tickets, currency switcher, first-login `OnboardingWizard` (`src/components/onboarding/wizard.tsx`) |
+| `/dashboard/checkout` | `src/app/dashboard/checkout/page.tsx` | Plan + billing cycle (monthly/annual) + currency checkout via PayPal/PesaPal |
+| `/dashboard/subscriptions` | `src/app/dashboard/subscriptions/page.tsx` | Subscription list, Change Plan modal, Cancel confirmation |
+| `/dashboard/services` | `src/app/dashboard/services/page.tsx` | Subscribed services vs available upgrade services |
+| `/dashboard/tickets` | `src/app/dashboard/tickets/page.tsx` | Support tickets CRUD, message thread, close/reopen |
+| `/dashboard/billing` | `src/app/dashboard/billing/page.tsx` | Payment transaction history + printable VAT (18%) invoice modal |
+| `/dashboard/profile` | `src/app/dashboard/profile/page.tsx` | Profile & password management |
+
+### Key Client Dashboard Internals
+- **`src/features/auth/auth-provider.tsx`**: Sanctum Bearer token (`auth_token` in `localStorage`) + URL token handoff (`?token=xxx&redirect=/path` consumed on mount, stripped from URL via `history.replaceState`).
+- **`src/lib/api.ts`**: Central API client for all 31+ `/api/v1/client/*` endpoints. Includes `X-XSRF-TOKEN` cookie forwarding and global `401`/`419` interceptor that clears `auth_token` and redirects to `/auth/login`.
+- **`src/lib/format.ts`**: Central `formatMoney(amount, currency)` utility + `getStoredCurrency()` / `setStoredCurrency()` persisted in `localStorage`.
+
+---
+
+## Key Marketing Files
 
 | File | Purpose |
 |---|---|
 | `app/layout.tsx` | Root layout — ThemeProvider (dark/light, default dark), Navbar, Footer, ToastProvider |
 | `app/globals.css` | Tailwind base + custom section/card/animation classes |
 | `components/ContactUs.tsx` | Contact form (client component) — submits to `/api/contact` |
-| `components/ServicesPricing.tsx` | 3-tier pricing with monthly/annual toggle |
+| `components/ServicesPricing.tsx` | 3-tier pricing with monthly/annual toggle, 3-day trial CTAs pointing to `/auth/register?plan=...` |
 | `components/ServicesList.tsx` | 13-service grid with Lucide icons |
+| `components/DesktopDownload.tsx` | ClassicPOS Desktop download cards pointing to `github.com/OAK-IT-Solutions/classicpos-Lite/releases` |
 | `components/ToastProvider.tsx` | Client wrapper around Sonner Toaster (fixes hydration) |
 | `lib/ghost.ts` | Ghost Content API client with in-memory cache (1h fresh / 24h stale) |
 | `lib/email.ts` | Resend email: admin notification + user auto-reply |
-| `lib/pricing.ts` | Pricing config — edit to change tiers/features |
-| `lib/services.ts` | Service config — edit to add/change services |
+| `lib/pricing.ts` | Pricing config — Basic (UGX 700k/mo), Regular (UGX 1,500k/mo), Advanced (quote-only) |
+| `lib/services.ts` | 13 IT services config — auto-generates `/services/[slug]` and sitemap |
 | `app/api/contact/route.ts` | POST handler: validation, honeypot, rate limit (5/h per IP), Resend |
 | `app/sitemap.ts` | Dynamic sitemap from services + Ghost posts |
 | `scripts/push-blog-content.js` | Push blog posts to Ghost Admin API |
 
 ---
 
-## Data Sources (non-obvious)
+## Data Sources & Security Notes
 
-**Ghost CMS** — Blog posts and pages come from `@tryghost/content-api` (Content API v5). Key env vars in `.env.local`:
-- `GHOST_URL` — Ghost instance URL
-- `GHOST_CONTENT_KEY` — Content API key (26-char hex). **No `NEXT_PUBLIC_` prefix** — this is server-only.
-
-**Resend** — Contact form emails. Key env vars:
-- `RESEND_API_KEY`
-- `CONTACT_EMAIL_TO` — comma-separated admin addresses
-- `CONTACT_EMAIL_FROM` — from address (must be a verified domain in Resend)
-
-**DOMPurify** — Ghost HTML blog content is sanitized with `isomorphic-dompurify` before rendering via `dangerouslySetInnerHTML`. Do not remove the sanitize call.
-
----
-
-## Tailwind / Styling Conventions
-
-- Dark mode via `next-themes` with `darkMode: ["class"]` in `tailwind.config.ts`.
-- Custom section classes: `.section-dark`, `.section-dark-alt`, `.section-dark-bootcamp`, `.grid-overlay`, `.card-glass`, `.pricing-card`, `.btn-glow`, `.rv` (scroll reveal).
-- `@apply` used heavily in `globals.css` for custom component classes.
-- Icon library: `lucide-react`. All services in `lib/services.ts` reference Lucide icons.
-
----
-
-## Contact Form Gotchas
-
-1. **Honeypot field** — `honeypot` field in the form JSON is silently accepted (bots fill it). Real submissions omit it.
-2. **Rate limiting** — 5 requests per hour per IP, in-memory Map. Clears on server restart.
-3. **Admin email is non-fatal** — if `sendAdminNotification` fails, the user still sees success. Only `sendUserAutoReply` failure returns 500.
-4. **Resend free tier** — `CONTACT_EMAIL_TO` must include the email used to sign up for Resend. Unverified recipient addresses will bounce.
-
----
-
-## Blog Content Management
-
-Blog posts are created via `scripts/push-blog-content.js` using the Ghost **Admin API** (`@tryghost/admin-api`, devDependency only). The script reads HTML from `blog-content/` and pushes to Ghost. To add a new post:
-1. Write the HTML file in `blog-content/`
-2. Add an entry to the `posts` array in the script
-3. Run the script
-
-The Content API (server-side only) reads posts at runtime with caching.
-
----
-
-## Service Pages
-
-13 services defined in `lib/services.ts`. Each gets an auto-generated detail page at `/services/[slug]`. To add a service:
-1. Add entry to `services` array in `lib/services.ts` (slug, title, icon from lucide-react, features, benefits, CTA)
-2. The page and sitemap update automatically — no new file needed.
-
----
-
-## Pricing
-
-3 tiers in `lib/pricing.ts`: Basic (UGX 700k/mo), Regular (UGX 1,500k/mo), Advanced (quote-only). Annual pricing has ~17% discount. Edit the config to change prices/features.
+- **Ghost CMS**: Content API v5 (`GHOST_URL`, server-only `GHOST_CONTENT_KEY`). Blog HTML is sanitized with `isomorphic-dompurify` before rendering.
+- **Resend**: Transactional & contact emails (`RESEND_API_KEY`, `CONTACT_EMAIL_TO`, `CONTACT_EMAIL_FROM` on verified domain `notifications.oakitsolutionsandsupplies.com`).
+- **Verification Route Security**: `app/api/auth/send-verification/route.ts` sends the verification link via Resend email and never leaks `verification_url` in the JSON response.
+- **`opencode.json`**: Contains a live API key — never echo or commit changes exposing it.
 
 ---
 
@@ -138,14 +124,3 @@ CONTACT_EMAIL_TO=admin1@example.com,admin2@example.com
 CONTACT_EMAIL_FROM=website-form@notifications.oakitsolutionsandsupplies.com
 NEXT_PUBLIC_API_URL=https://posapp.oakitsolutionsandsupplies.com/api/v1/client
 ```
-
----
-
-## Remaining Known Issues
-
-- `NEXT_PUBLIC_GHOST_CONTENT_KEY` — already fixed (now server-only `GHOST_CONTENT_KEY`)
-- **Resend domain verification** — `notifications.oakitsolutionsandsupplies.com` verified in Resend; `CONTACT_EMAIL_FROM` must use this verified domain
-- **Footer social links** — Twitter/LinkedIn/GitHub hrefs are `#`
-- **Hardcoded production URLs** — scattered across components; extract to env vars when feasible
-- **Loading states** — no `loading.tsx` on blog or service pages
-- **client-dashboard** — admin Vue/Next.js pages for user and service management are missing (API exists)
