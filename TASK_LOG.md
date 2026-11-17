@@ -104,7 +104,7 @@ Full SaaS client dashboard system for OAK IT Solutions customers. When users sub
 
 ## Files Created/Modified
 
-### Laravel Backend (`D:\kilo\poslavalel`)
+### Laravel Backend (`../poslavalel`)
 
 **New files:**
 - `backend/database/migrations/landlord/2026_07_15_000001_create_oakit_services_table.php`
@@ -136,7 +136,7 @@ Full SaaS client dashboard system for OAK IT Solutions customers. When users sub
 - `backend/database/seeders/DatabaseSeeder.php` — added OakItSeeder
 - `docker-compose.yml` — added client-dashboard service (port 3004), added DB credentials, added CORS domain
 
-### OAK IT Website (`D:\kilo\oakit`)
+### OAK IT Website (`oakit/`)
 
 **New files:**
 - `app/auth/signup/page.tsx` — Signup form with 7 required fields + plan pre-selection
@@ -152,7 +152,7 @@ Full SaaS client dashboard system for OAK IT Solutions customers. When users sub
 - `lib/pricing.ts` — Basic/Regular CTAs link to `/auth/signup?plan=...`
 - `components/ServicesPricing.tsx` — Advanced stays as contact form
 
-### Client Dashboard (Docker — `D:\kilo\oakit\client-dashboard`)
+### Client Dashboard (Docker — `oakit/client-dashboard/`)
 
 **Built from `next-shadcn-dashboard-starter` template. Key files:**
 - `src/features/auth/auth-provider.tsx` — Sanctum token auth, exposes `fetchUser` in context
