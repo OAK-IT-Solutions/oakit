@@ -26,6 +26,10 @@ const nextConfig: NextConfig = process.env.SENTRY_AUTH_TOKEN
       silent: true,
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
+      // Docker builds have no .git in context — pass the release explicitly.
+      release: process.env.SENTRY_RELEASE
+        ? { name: process.env.SENTRY_RELEASE }
+        : undefined,
     })
   : baseConfig;
 
