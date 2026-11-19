@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
+
 export default function Error({
   error,
   reset,
@@ -7,6 +10,12 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // This is the nearest error boundary for page errors — report to Sentry
+  // (parent Sentry.ErrorBoundary in the layout never sees these).
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="text-center space-y-6">
