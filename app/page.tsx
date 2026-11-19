@@ -8,12 +8,14 @@ import Mission from "@/components/Mission";
 import Faq from "@/components/Faq";
 import DesktopDownload from "@/components/DesktopDownload";
 import FullStackCourse from "@/components/FullStackCourse";
+import SentryBoundaryProbe from "@/components/SentryBoundaryProbe";
 
 export const revalidate = 3600;
 
 export default function Home() {
   return (
     <main className="flex flex-col items-center">
+      <SentryBoundaryProbe />
       <Hero />
       <ServicesPricing />
       <ServicesList />
