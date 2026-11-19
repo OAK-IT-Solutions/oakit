@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import Navbar from '@/components/Navbar';
 import Footer from "@/components/Footer";
 import ToastProvider from "@/components/ToastProvider";
+import SentryErrorBoundary from '@/components/SentryErrorBoundary';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,9 +36,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <Navbar />
-          {children}
-          <Footer />
+          <SentryErrorBoundary>
+            <Navbar />
+            {children}
+            <Footer />
+          </SentryErrorBoundary>
           <ToastProvider />
         </ThemeProvider>
       </body>
