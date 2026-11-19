@@ -8,12 +8,14 @@ import Mission from "@/components/Mission";
 import Faq from "@/components/Faq";
 import DesktopDownload from "@/components/DesktopDownload";
 import FullStackCourse from "@/components/FullStackCourse";
+import SentryFrameProbe from "@/components/SentryFrameProbe";
 
 export const revalidate = 3600;
 
 export default function Home() {
   return (
     <main className="flex flex-col items-center">
+      <SentryFrameProbe />
       <Hero />
       <ServicesPricing />
       <ServicesList />
