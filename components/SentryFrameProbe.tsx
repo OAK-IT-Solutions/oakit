@@ -11,8 +11,7 @@ function sentryFrameCheck(): void {
 export default function SentryFrameProbe() {
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("sentry_frame_check")) {
-      // setTimeout escapes React's error boundaries → reaches window.onerror
-      setTimeout(sentryFrameCheck, 0);
+      sentryFrameCheck();
     }
   }, []);
   return null;
